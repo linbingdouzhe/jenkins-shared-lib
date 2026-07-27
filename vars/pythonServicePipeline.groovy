@@ -5,6 +5,11 @@ def call(Map config) {
   def sonarExclusions = config.sonarExclusions ?: 'templates/**'
   def manifestPath = config.manifestPath ?: ''
   def manifestRepoSshUrl = config.manifestRepoSshUrl ?: ''
+  // Kaniko pushes from inside a pod, so the cluster-DNS registry address (config.registry)
+  // resolves fine there. Deployed manifests are pulled by kubelet on the node itself, which
+  // uses the node's own resolver and can't see *.svc.cluster.local -- so the image reference
+  // written into the manifest must use a node-resolvable address instead (e.g. a NodePort).
+  def deployRegistry = config.deployRegistry ?: registry
 
   pipeline {
     agent {
@@ -45,10 +50,11 @@ def call(Map config) {
       }
     }
     environment {
-      REGISTRY      = "${registry}"
-      IMAGE         = "${config.serviceName}"
-      SERVICE_PATH  = "${config.servicePath}"
-      MANIFEST_PATH = "${manifestPath}"
+      REGISTRY        = "${registry}"
+      DEPLOY_REGISTRY = "${deployRegistry}"
+      IMAGE           = "${config.serviceName}"
+      SERVICE_PATH    = "${config.servicePath}"
+      MANIFEST_PATH   = "${manifestPath}"
       MANIFEST_REPO_SSH = "${manifestRepoSshUrl}"
     }
     stages {
@@ -132,7 +138,7 @@ def call(Map config) {
               export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519"
               git config user.email "jenkins-ci@local"
               git config user.name "Jenkins CI"
-              sed -i "s#^\\( *image: \\).*#\\1$REGISTRY/$IMAGE:$BUILD_NUMBER#" "$MANIFEST_PATH"
+              sed -i "s#^\\( *image: \\).*#\\1$DEPLOY_REGISTRY/$IMAGE:$BUILD_NUMBER#" "$MANIFEST_PATH"
               git add "$MANIFEST_PATH"
               git diff --cached --quiet && echo "no manifest change" || git commit -m "ci: bump $IMAGE image to $BUILD_NUMBER"
               git push "$MANIFEST_REPO_SSH" HEAD:main
