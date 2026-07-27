@@ -26,10 +26,13 @@ kubectl "${CTX[@]}" -n argocd rollout status deployment/argocd-repo-server --tim
 kubectl "${CTX[@]}" -n argocd rollout status deployment/argocd-server --timeout=600s
 
 echo "[bootstrap] exposing argocd-server UI on 8081/8443 (80/443 are already claimed by Traefik's svclb on this node)"
-kubectl "${CTX[@]}" apply --server-side --force-conflicts -f "$SCRIPT_DIR/server-patch.yaml"
+# --type merge (not --server-side / strategic): those merge spec.ports by the
+# "port" number key, so re-applying install.yaml's 80/443 ports would re-add
+# them alongside 8081/8443 instead of replacing them. See server-patch.yaml.
+kubectl "${CTX[@]}" -n argocd patch svc argocd-server --type merge --patch-file "$SCRIPT_DIR/server-patch.yaml"
 
 echo "[bootstrap] applying prereqs (registry NodePort -- see prereqs/registry-nodeport.yaml for why this is required)"
-kubectl "${CTX[@]}" apply --server-side --force-conflicts -f "$SCRIPT_DIR/prereqs/registry-nodeport.yaml"
+kubectl "${CTX[@]}" -n registry patch svc registry --type merge --patch-file "$SCRIPT_DIR/prereqs/registry-nodeport.yaml"
 
 echo "[bootstrap] registering Applications"
 kubectl "${CTX[@]}" apply -f "$SCRIPT_DIR/applications/"

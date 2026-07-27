@@ -1,24 +1,29 @@
-# Applied with `kubectl apply --server-side` on top of the upstream install
-# manifest. Server-side apply lets us own just `type`/`ports` here while the
-# install manifest's field manager keeps owning selector/clusterIP/etc.
+# Applied with `kubectl patch --type merge` (RFC 7396 JSON Merge Patch), NOT
+# `kubectl apply --server-side`. Server-side apply merges corev1 Service
+# `spec.ports` by the "port" number key -- re-applying the upstream install
+# manifest (ports 80/443, named http/https) after this patch would re-add
+# those entries alongside ours instead of replacing them. JSON Merge Patch
+# replaces the whole `ports` array wholesale, so it's safe to re-run anytime.
+#
+# Names are "ui-http"/"ui-https", NOT "http"/"https": bootstrap.sh always
+# re-applies install.yaml (which declares ports 80/443 named http/https)
+# before this patch runs, so both sets of entries briefly coexist in the live
+# object. Reusing the default names would make that intermediate state
+# invalid (Service can't have two ports named "http") and the whole re-run
+# would fail before this patch ever gets a chance to strip 80/443 back out.
 #
 # Ports are 8081/8443, not the LoadBalancer defaults 80/443, because those are
 # already bound on this node by Traefik's svclb-traefik -- a default-port
 # LoadBalancer Service for argocd-server sits Pending forever
 # (FailedScheduling: node(s) didn't have free ports).
-apiVersion: v1
-kind: Service
-metadata:
-  name: argocd-server
-  namespace: argocd
 spec:
   type: LoadBalancer
   ports:
-  - name: http
+  - name: ui-http
     port: 8081
     targetPort: 8080
     protocol: TCP
-  - name: https
+  - name: ui-https
     port: 8443
     targetPort: 8080
     protocol: TCP

@@ -1,15 +1,13 @@
-# The registry Service's ClusterDNS name (registry.registry.svc.cluster.local)
+# Applied with `kubectl patch --type merge` (RFC 7396 JSON Merge Patch) --
+# see argocd/server-patch.yaml for why merge patch, not server-side apply.
+#
+# The registry Service's cluster-DNS name (registry.registry.svc.cluster.local)
 # only resolves from inside pods (via CoreDNS). Kubelet on the node pulls
 # images using the node's own resolver, which has no idea what that name is --
 # any Deployment manifest that references the cluster-DNS address hits
 # ImagePullBackOff with a DNS timeout. This NodePort gives kubelet a
 # node-loopback-reachable address (localhost:30500) for the same registry
 # backend; Kaniko pushes (which run as pods) keep using the cluster-DNS name.
-apiVersion: v1
-kind: Service
-metadata:
-  name: registry
-  namespace: registry
 spec:
   type: NodePort
   ports:
