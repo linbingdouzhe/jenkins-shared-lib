@@ -1,0 +1,24 @@
+# Applied with `kubectl apply --server-side` on top of the upstream install
+# manifest. Server-side apply lets us own just `type`/`ports` here while the
+# install manifest's field manager keeps owning selector/clusterIP/etc.
+#
+# Ports are 8081/8443, not the LoadBalancer defaults 80/443, because those are
+# already bound on this node by Traefik's svclb-traefik -- a default-port
+# LoadBalancer Service for argocd-server sits Pending forever
+# (FailedScheduling: node(s) didn't have free ports).
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8081
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 8443
+    targetPort: 8080
+    protocol: TCP
