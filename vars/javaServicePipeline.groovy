@@ -66,7 +66,8 @@ def call(Map config) {
                     -Dsonar.sources=${sonarSources} \
                     -Dsonar.tests=${sonarTests} \
                     -Dsonar.java.binaries=build/classes \
-                    -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml
+                    -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml \
+                    -Dsonar.junit.reportPaths=build/test-results/test
                 """
               }
             }

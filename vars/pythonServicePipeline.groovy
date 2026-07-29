@@ -96,7 +96,8 @@ def call(Map config) {
                     -Dsonar.tests=. \
                     -Dsonar.test.inclusions=${sonarTestInclusions} \
                     -Dsonar.exclusions=${sonarExclusions} \
-                    -Dsonar.python.coverage.reportPaths=coverage.xml
+                    -Dsonar.python.coverage.reportPaths=coverage.xml \
+                    -Dsonar.python.xunit.reportPath=test-results.xml
                 """
               }
             }

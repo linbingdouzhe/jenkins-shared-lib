@@ -42,9 +42,8 @@ def call(Map config) {
           container('golang') {
             dir(env.SERVICE_PATH) {
               sh '''
-                go install github.com/jstemmer/go-junit-report@latest
-                go test ./... -v -coverprofile=coverage.out 2>&1 | tee test-output.txt
-                $(go env GOPATH)/bin/go-junit-report < test-output.txt > test-results.xml
+                go install github.com/jstemmer/go-junit-report/v2@latest
+                go test -json ./... -coverprofile=coverage.out 2>&1 | tee test-report.out | $(go env GOPATH)/bin/go-junit-report -parser gojson > test-results.xml
               '''
             }
           }
@@ -67,7 +66,8 @@ def call(Map config) {
                     -Dsonar.sources=. \
                     -Dsonar.tests=. \
                     -Dsonar.test.inclusions=${sonarTestInclusions} \
-                    -Dsonar.go.coverage.reportPaths=coverage.out
+                    -Dsonar.go.coverage.reportPaths=coverage.out \
+                    -Dsonar.go.tests.reportPaths=test-report.out
                 """
               }
             }
